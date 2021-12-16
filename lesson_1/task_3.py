@@ -63,6 +63,7 @@ print(tabulate(dict_for_table, headers='keys', tablefmt="pipe"))
 """
 Введите ip: 192.168.1.105
 Введите колличество хостов: 10
+
 | Reachable     | Unreachable   |
 |:--------------|:--------------|
 | 192.168.1.105 |               |
