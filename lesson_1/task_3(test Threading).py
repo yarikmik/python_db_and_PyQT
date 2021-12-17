@@ -5,11 +5,12 @@
 """
 
 import platform
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, call
 from ipaddress import ip_address
 from tabulate import tabulate
 import threading
 import time
+import chardet
 
 
 def host_ping(address):
@@ -18,23 +19,26 @@ def host_ping(address):
     :param address:
     :return:
     """
-
+    # global dict_for_table
     param = '-n' if platform.system().lower() == 'windows' else '-c'
     args = ['ping', param, '1', address]
-    ping_process = Popen(args, stdout=PIPE, stderr=PIPE)
-    code = ping_process.wait()
+    with Popen(args, stdout=PIPE, stderr=PIPE) as ping_process:
+        out = ping_process.stdout.read()
+        coding = chardet.detect(out)
+        result = out.decode(coding['encoding'])
+        code = ping_process.wait()
     # time.sleep(1)
-    print(f'Узел "{address}" доступен\n') if code == 0 else print(f'Узел "{address}" недоступен\n')
+    # print(f'Узел "{address}" доступен\n') if code == 0 else print(f'Узел "{address}" недоступен\n')
     # return True if code == 0 else False
 
-    if code == 0:
+    if code == 0 and 'TTL' in result:
         dict_for_table.append({'Reachable': address})
     else:
         dict_for_table.append({'Unreachable': address})
 
 
-
 def host_range_ping():
+
     while True:
         addr = input('Введите ip: ')
         try:
@@ -57,13 +61,16 @@ def host_range_ping():
     hosts_list = [(ipv4_addr + i).compressed for i in range(hosts)]
     for ip in hosts_list:
         ping_tread = threading.Thread(target=host_ping, args=(ip,))
-        ping_tread.daemon = True
+        # ping_tread.daemon = True
         ping_tread.start()
+        # ping_tread.join()
+    return
 
 
-dict_for_table = []
+dict_for_table = list()
 
 host_range_ping()
+time.sleep(5)
 print(tabulate(dict_for_table, headers='keys', tablefmt="pipe"))
 
 """
