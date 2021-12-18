@@ -59,18 +59,22 @@ def host_range_ping():
             print(f'Должно быть число')
 
     hosts_list = [(ipv4_addr + i).compressed for i in range(hosts)]
+    threads = []
     for ip in hosts_list:
         ping_tread = threading.Thread(target=host_ping, args=(ip,))
         # ping_tread.daemon = True
         ping_tread.start()
-        # ping_tread.join()
+        threads.append(ping_tread)
+
+    for thread in threads:
+        thread.join()
     return
 
 
 dict_for_table = list()
 
 host_range_ping()
-time.sleep(5)
+# time.sleep(5)
 print(tabulate(dict_for_table, headers='keys', tablefmt="pipe"))
 
 """
