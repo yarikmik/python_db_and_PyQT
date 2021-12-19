@@ -8,11 +8,13 @@ import logging
 import argparse
 import logs.config_client_log
 import threading
+from descriptors import Port
 from common.variables import ACTION, PRESENCE, TIME, USER, ACCOUNT_NAME, \
     RESPONSE, ERROR, DEFAULT_IP_ADDRESS, DEFAULT_PORT, MESSAGE, MESSAGE_TEXT, SENDER, DESTINATION, EXIT
 from common.utils import get_message, send_message
 from errors import ReqFieldMissingError, ServerError, IncorrectDataRecivedError
 from decorators import log, LogClass
+from metaclasses import ClientVerifier
 
 # Инициализируем клиентский логгер
 CLIENT_LOGGER = logging.getLogger('client')
@@ -152,11 +154,11 @@ def get_argv():
     client_name = namespace.name
 
     # проверим подходящий номер порта
-    if not 1023 < server_port < 65536:
-        CLIENT_LOGGER.critical(
-            f'Попытка запуска клиента с неподходящим номером порта: {server_port}. '
-            f'Допустимы адреса с 1024 до 65535. Клиент завершается.')
-        sys.exit(1)
+    # if not 1023 < server_port < 65536:
+    #     CLIENT_LOGGER.critical(
+    #         f'Попытка запуска клиента с неподходящим номером порта: {server_port}. '
+    #         f'Допустимы адреса с 1024 до 65535. Клиент завершается.')
+    #     sys.exit(1)
 
     return server_address, server_port, client_name
 
@@ -175,8 +177,9 @@ class MessageThreading(threading.Thread):
             self.func(*self.args)
 
 
-class ClientSocket(object):
-    __slots__ = ('server_port', 'server_address', 'client_name', 'transport')
+class ClientSocket(metaclass=ClientVerifier):
+    # __slots__ = ('server_port', 'server_address', 'client_name', 'transport')
+    server_port = Port()
 
     def __init__(self, ip='', port='', client_name=''):
         self.server_port = port
@@ -201,7 +204,7 @@ class ClientSocket(object):
         print(f'Порт сервера:{self.server_port}, адрес:{self.server_address}')
 
     # @log
-    @LogClass()
+    # @LogClass()
     def client_init(self):
         try:
             self.__connect_to_server()
