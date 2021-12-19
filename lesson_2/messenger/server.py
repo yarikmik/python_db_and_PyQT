@@ -8,12 +8,14 @@ import argparse
 import select
 import time
 import logs.config_server_log
+from descriptors import Port
 from common.variables import ACTION, ACCOUNT_NAME, RESPONSE, MAX_CONNECTIONS, \
     PRESENCE, TIME, USER, ERROR, DEFAULT_PORT, DEFAULT_IP_ADDRESS, MESSAGE, MESSAGE_TEXT, \
     RESPONSE_400, DESTINATION, RESPONSE_200, EXIT, SENDER
 from common.utils import get_message, send_message
 from errors import IncorrectDataRecivedError
 from decorators import log, LogClass
+from metaclasses import ServerVerifier
 
 # Инициализируем серверный логгер
 SERVER_LOGGER = logging.getLogger('server')
@@ -109,31 +111,34 @@ def get_argv():
     listen_port = namespace.p
 
     # проверка получения корретного номера порта для работы сервера.
-    if not 1023 < listen_port < 65536:
-        SERVER_LOGGER.critical(
-            f'Попытка запуска сервера с указанием неподходящего порта '
-            f'{listen_port}. Допустимы адреса с 1024 до 65535.')
-        sys.exit(1)
+    # if not 1023 < listen_port < 65536:
+    #     SERVER_LOGGER.critical(
+    #         f'Попытка запуска сервера с указанием неподходящего порта '
+    #         f'{listen_port}. Допустимы адреса с 1024 до 65535.')
+    #     sys.exit(1)
 
     return listen_address, listen_port
 
 
-class ServerSocket(object):
-    __slots__ = ('listen_port', 'listen_address')
+class ServerSocket(metaclass=ServerVerifier):
+    # __slots__ = ('listen_port', 'listen_address')
+    listen_port = Port()
 
     # @log
-    @LogClass()
+    # @LogClass()
     def __init__(self, ip='', port=''):
         self.listen_port = port
         self.listen_address = ip
         SERVER_LOGGER.info(f'Запущен сервер, порт для подключений: {self.listen_port}, '
                            f'адрес с которого принимаются подключения: {self.listen_address}.')
 
+    transport = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
     def print_server_params(self):
         print(f'Слушаем порт:{self.listen_port}, адрес:{self.listen_address}')
 
     # @log
-    @LogClass()
+    # @LogClass()
     def server_init(self):
         # Готовим сокет
         transport = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -141,7 +146,9 @@ class ServerSocket(object):
         transport.settimeout(1)  # задержка
 
         # Слушаем порт
-        transport.listen(MAX_CONNECTIONS)
+        self.sock = transport
+        self.sock.listen(MAX_CONNECTIONS)
+        # transport.listen(MAX_CONNECTIONS)
 
         # Словарь, содержащий имена пользователей и соответствующие им сокеты.
         names = dict()
@@ -153,7 +160,6 @@ class ServerSocket(object):
         while True:
             try:
                 client, client_address = transport.accept()
-                # SERVER_LOGGER.info(f'Установлено соедение с {client_address}')
             except OSError:
                 pass
             else:
@@ -162,8 +168,6 @@ class ServerSocket(object):
 
             recv_data_lst = []
             send_data_lst = []
-
-
 
             # Проверяем на наличие ждущих клиентов
             try:
@@ -200,7 +204,7 @@ if __name__ == '__main__':
     server = ServerSocket(ip, port)
     server.print_server_params()
     server.server_init()
-
-ip, port = get_argv()
-server = ServerSocket(ip, port)
-server.server_init()
+#
+# ip, port = get_argv()
+# server = ServerSocket(ip, port)
+# server.server_init()
