@@ -176,6 +176,8 @@ class MessageThreading(threading.Thread):
         while True:
             self.func(*self.args)
 
+# def socket_init(server_address, server_port):
+
 
 class ClientSocket(metaclass=ClientVerifier):
     # __slots__ = ('server_port', 'server_address', 'client_name', 'transport')
