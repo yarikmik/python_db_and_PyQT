@@ -9,13 +9,12 @@ import select
 import time
 import logs.config_server_log
 from descriptors import Port
-from common.variables import ACTION, ACCOUNT_NAME, RESPONSE, MAX_CONNECTIONS, \
-    PRESENCE, TIME, USER, ERROR, DEFAULT_PORT, DEFAULT_IP_ADDRESS, MESSAGE, MESSAGE_TEXT, \
-    RESPONSE_400, DESTINATION, RESPONSE_200, EXIT, SENDER
+from common.variables import *
 from common.utils import get_message, send_message
 from errors import IncorrectDataRecivedError
 from decorators import log, LogClass
 from metaclasses import ServerVerifier
+from server_database import ServerStorage
 
 # Инициализируем серверный логгер
 SERVER_LOGGER = logging.getLogger('server')
@@ -23,7 +22,7 @@ SERVER_LOGGER = logging.getLogger('server')
 
 # @log
 @LogClass()
-def process_client_message(message, messages_list, client, clients, names):
+def process_client_message(message, messages_list, client, clients, names, database, client_address):
     """
     Обработчик сообщений от клиентов, принимает словарь - сообщение от клиента,
     проверяет корректность, отправляет словарь-ответ в случае необходимости.
@@ -42,6 +41,7 @@ def process_client_message(message, messages_list, client, clients, names):
         # регистрируем, иначе отправляем ответ и завершаем соединение.
         if message[USER][ACCOUNT_NAME] not in names.keys():
             names[message[USER][ACCOUNT_NAME]] = client
+            database.user_login(message[USER][ACCOUNT_NAME], client_address[0], client_address[1])
             send_message(client, RESPONSE_200)
         else:
             response = RESPONSE_400
@@ -59,6 +59,7 @@ def process_client_message(message, messages_list, client, clients, names):
         return
     # Если клиент выходит
     elif ACTION in message and message[ACTION] == EXIT and ACCOUNT_NAME in message:
+        database.user_logout(message[ACCOUNT_NAME])
         clients.remove(names[message[ACCOUNT_NAME]])
         names[message[ACCOUNT_NAME]].close()
         del names[message[ACCOUNT_NAME]]
@@ -120,15 +121,51 @@ def get_argv():
     return listen_address, listen_port
 
 
+def main(database):
+    # Печатаем справку:
+    print_help()
+
+    # Основной цикл сервера:
+    while True:
+        command = input('Введите команду: ')
+        if command == 'help':
+            print_help()
+        elif command == 'exit':
+            break
+        elif command == 'users':
+            for user in sorted(database.users_list()):
+                print(f'Пользователь {user[0]}, последний вход: {user[1]}')
+        elif command == 'connected':
+            for user in sorted(database.active_users_list()):
+                print(f'Пользователь {user[0]}, подключен: {user[1]}:{user[2]}, время установки соединения: {user[3]}')
+        elif command == 'loghist':
+            name = input('Введите имя пользователя для просмотра истории. '
+                         'Для вывода всей истории, просто нажмите Enter: ')
+            for user in sorted(database.login_history(name)):
+                print(f'Пользователь: {user[0]} время входа: {user[1]}. Вход с: {user[2]}:{user[3]}')
+        else:
+            print('Команда не распознана.')
+
+
+def print_help():
+    print('Поддерживаемые комманды:')
+    print('users - список известных пользователей')
+    print('connected - список подключённых пользователей')
+    print('loghist - история входов пользователя')
+    print('exit - завершение работы сервера.')
+    print('help - вывод справки по поддерживаемым командам')
+
+
 class ServerSocket(metaclass=ServerVerifier):
     # __slots__ = ('listen_port', 'listen_address')
     listen_port = Port()
 
     # @log
     # @LogClass()
-    def __init__(self, ip='', port=''):
+    def __init__(self, ip='', port='', database=None):
         self.listen_port = port
         self.listen_address = ip
+        self.database = database
         SERVER_LOGGER.info(f'Запущен сервер, порт для подключений: {self.listen_port}, '
                            f'адрес с которого принимаются подключения: {self.listen_address}.')
 
@@ -140,6 +177,7 @@ class ServerSocket(metaclass=ServerVerifier):
     # @log
     # @LogClass()
     def server_init(self):
+
         # Готовим сокет
         transport = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         transport.bind((self.listen_address, self.listen_port))
@@ -181,7 +219,8 @@ class ServerSocket(metaclass=ServerVerifier):
                 for client_with_message in recv_data_lst:
                     try:
                         process_client_message(get_message(client_with_message),
-                                               messages, client_with_message, clients, names)
+                                               messages, client_with_message, clients, names,
+                                               self.database, client_address)
                     except Exception:
                         SERVER_LOGGER.info(f'Клиент {client_with_message.getpeername()} '
                                            f'отключился от сервера.')
@@ -200,11 +239,14 @@ class ServerSocket(metaclass=ServerVerifier):
 
 if __name__ == '__main__':
     ip, port = get_argv()
+    # Инициализация базы данных
+    database = ServerStorage()
 
-    server = ServerSocket(ip, port)
+    server = ServerSocket(ip, port, database)
     server.print_server_params()
     server.server_init()
-#
+    main(database)
+
 # ip, port = get_argv()
 # server = ServerSocket(ip, port)
 # server.server_init()
