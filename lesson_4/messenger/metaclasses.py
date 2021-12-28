@@ -86,7 +86,7 @@ class ClientVerifier(type):
                             methods.append(i.argval)
         # Если обнаружено использование недопустимого метода accept, listen, socket бросаем исключение:
         for command in ('accept', 'listen',
-                        # 'socket',
+                        'socket',
                         ):
             if command in methods:
                 raise TypeError('В классе обнаружено использование запрещённого метода')
