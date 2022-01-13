@@ -8,7 +8,7 @@ import dis
 
 
 # Метакласс для проверки соответствия сервера:
-class ServerVerifier(type):
+class ServerMaker(type):
     def __init__(cls, clsname, bases, clsdict):
         # clsname - экземпляр метакласса - ServerSocket
         # bases - кортеж базовых классов - ()
