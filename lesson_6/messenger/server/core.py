@@ -8,14 +8,11 @@ import binascii
 import os
 import sys
 sys.path.append('../')
-# sys.path.append(os.path.join(os.getcwd(), '..'))
-sys.path.append(os.path.join(sys.path[0], '../../messenger'))
+sys.path.append('.')
 from common.metaclasses import ServerMaker
-from common.descryptors import Port
 from common.variables import *
 from common.utils import send_message, get_message
-from lesson_6.messenger.common.decos import login_required
-
+from common.descryptors import Port
 
 # Загрузка логера
 logger = logging.getLogger('server')
@@ -141,7 +138,7 @@ class MessageProcessor(threading.Thread):
             logger.error(
                 f'Пользователь {message[DESTINATION]} не зарегистрирован на сервере, отправка сообщения невозможна.')
 
-    @login_required
+
     def process_client_message(self, message, client):
         """ Метод обработчик поступающих сообщений. """
         logger.debug(f'Разбор сообщения от клиента : {message}')

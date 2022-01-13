@@ -17,7 +17,6 @@ class ServerStorage:
             self.name = username
             self.last_login = datetime.datetime.now()
             self.passwd_hash = passwd_hash
-            self.pubkey = None
             self.id = None
 
     class ActiveUsers:
@@ -130,10 +129,9 @@ class ServerStorage:
         self.session.query(self.ActiveUsers).delete()
         self.session.commit()
 
-    def user_login(self, username, ip_address, port, key):
+    def user_login(self, username, ip_address, port):
         '''
         Метод выполняющийся при входе пользователя, записывает в базу факт входа
-        Обновляет открытый ключ пользователя при его изменении.
         '''
         # Запрос в таблицу пользователей на наличие там пользователя с таким
         # именем
@@ -145,8 +143,8 @@ class ServerStorage:
         if rez.count():
             user = rez.first()
             user.last_login = datetime.datetime.now()
-            if user.pubkey != key:
-                user.pubkey = key
+            # if user.pubkey != key:
+            #     user.pubkey = key
         # Если нету, то генерируем исключение
         else:
             raise ValueError('Пользователь не зарегистрирован.')

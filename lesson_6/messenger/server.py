@@ -3,14 +3,18 @@
 import sys
 import os
 import argparse
+import logging
+import configparser
+import logs.config_server_log
+
 from common.variables import *
-from server.core import MessageProcessor
-import configparser  # https://docs.python.org/3/library/configparser.html
+from common.utils import *
 from common.decos import log
-from server_database import ServerStorage
+from server.core import MessageProcessor
+from server.database import ServerStorage
+from server.main_window import MainWindow
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt
-from server_gui import MainWindow
 
 # Инициализируем серверный логгер
 SERVER_LOGGER = logging.getLogger('server')

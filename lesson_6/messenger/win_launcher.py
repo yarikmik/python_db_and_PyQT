@@ -13,11 +13,11 @@ def main():
             # Запускаем сервер!
             process.append(
                 subprocess.Popen(
-                    'python server_run.py',
+                    'python server.py',
                     creationflags=subprocess.CREATE_NEW_CONSOLE))
         elif action == 'k':
             print('Убедитесь, что на сервере зарегистрировано необходимо количество клиентов с паролем 123456.')
-            print('Первый запуск может быть достаточно долгим из-за генерации ключей!')
+            # print('Первый запуск может быть достаточно долгим из-за генерации ключей!')
             clients_count = int(
                 input('Введите количество тестовых клиентов для запуска: '))
             # Запускаем клиентов:
